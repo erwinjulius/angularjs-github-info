@@ -50,19 +50,6 @@ module.exports = function(grunt) {
 
     }, // end template
 
-    minifyHtml: {
-      index: {
-        files: {
-          './build/': './<%= paths.build %>/index.html'
-        }
-      },
-      all: {
-        files: {
-          './build/': './<%= paths.build %>/**/*.html'
-        }
-      }
-    }, // end minifyHtml
-
     ngTemplateCache: { 
       views: {
         files: {
@@ -88,12 +75,25 @@ module.exports = function(grunt) {
     paths: appConfig.paths,
 
     //----------
+    // grunt-hustler
 
     template: appConfig.template,
 
-    minifyHtml: appConfig.minifyHtml,
-
     ngTemplateCache: appConfig.ngTemplateCache,
+
+    //----------
+
+    htmlmin: {                                     // Task
+      index: {                                     // Target
+        options: {                                 // Target options
+          removeComments: true,
+          collapseWhitespace: true
+        },
+        files: {                                   // Dictionary of files
+          'build/index.html': 'build/index.html'
+        }
+      }
+    },
 
     //----------
 
@@ -148,7 +148,7 @@ module.exports = function(grunt) {
         options: {
            // These paths are searched for @imports
           paths: ["<%= paths.app %>/styles"],
-          yuicompress: true
+          compress: true
         },
         files: {
           "<%= paths.build %>/styles/app.css": "<%= paths.app %>/styles/app.less"
@@ -276,13 +276,15 @@ module.exports = function(grunt) {
           { // requirejs
             cwd: '<%= paths.bower %>/requirejs/', 
             src: ['require.js'], 
-            dest: '<%= paths.build %>/scripts/libs/', 
+            //dest: '<%= paths.build %>/scripts/libs/', 
+            dest: '<%= paths.build %>/vendor/js/', 
             expand: true
           },
           { // jquery
             cwd: '<%= paths.bower %>/jquery/', 
             src: ['jquery.min.js'], 
-            dest: '<%= paths.build %>/scripts/libs/', 
+            //dest: '<%= paths.build %>/scripts/libs/', 
+            dest: '<%= paths.build %>/vendor/js/', 
             expand: true
           },
           { // angularjs
@@ -291,43 +293,56 @@ module.exports = function(grunt) {
               'angular.min.js',
               'angular-resource.min.js'
             ], 
-            dest: '<%= paths.build %>/scripts/libs/', 
+            //dest: '<%= paths.build %>/scripts/libs/', 
+            dest: '<%= paths.build %>/vendor/js/', 
             expand: true
           },
+
+          //------------------------------------------------
           { // twitter bootstrap css
-            cwd: '<%= paths.bower %>/bootstrap/docs/assets/css/', 
+            cwd: '<%= paths.bower %>/bootstrap/dist/css', 
             src: [
-              'bootstrap.css',
-              'bootstrap-responsive.css'
+              '*.min.css'
             ], 
-            dest: '<%= paths.build %>/styles/', 
+            dest: '<%= paths.build %>/vendor/bootstrap/css', 
             expand: true
           },
-          { // twitter bootstrap img
-            cwd: '<%= paths.bower %>/bootstrap/docs/assets/img/', 
+          { // twitter bootstrap fonts
+            cwd: '<%= paths.bower %>/bootstrap/dist/fonts', 
             src: [
-              'glyphicons-halflings.png',
-              'glyphicons-halflings-white.png'
+              '*.*'
             ], 
-            dest: '<%= paths.build %>/img/', 
+            dest: '<%= paths.build %>/vendor/bootstrap/fonts', 
+            expand: true
+          },
+          { // twitter bootstrap js
+            cwd: '<%= paths.bower %>/bootstrap/dist/js', 
+            src: [
+              '*.min.js'
+            ], 
+            dest: '<%= paths.build %>/vendor/bootstrap/js', 
             expand: true
           },
           { // twitter bootstrap ico
-            cwd: '<%= paths.bower %>/bootstrap/docs/assets/', 
+            cwd: '<%= paths.bower %>/bootstrap/assets/ico', 
             src: [
-              'ico/**'
+              '*.*'
             ], 
-            dest: '<%= paths.build %>/img/', 
+            dest: '<%= paths.build %>/vendor/bootstrap/ico', 
             expand: true
-          },          
-          { // twitter bootstrap js
-            cwd: '<%= paths.bower %>/bootstrap/docs/assets/js/', 
+          },
+          //---
+          { // twitter bootstrap IE fallback
+            cwd: '<%= paths.bower %>/bootstrap/assets/js', 
             src: [
-              'bootstrap.min.js'
+              'html5shiv.js',
+              'respond.min.js'
             ], 
-            dest: '<%= paths.build %>/scripts/libs/', 
+            dest: '<%= paths.build %>/vendor/js', 
             expand: true
-          }
+          },
+          //------------------------------------------------
+
         ]
       }, // end bower_components
 
@@ -446,7 +461,8 @@ module.exports = function(grunt) {
         options: {
           port: appConfig.serverPort,
           base: '<%= paths.dist %>', 
-          middleware: require('./LivereloadMiddleware') 
+          livereload: true,
+          open: true
         }
       },
 
@@ -454,19 +470,12 @@ module.exports = function(grunt) {
         options: {
           port: appConfig.serverPort,
           base: '<%= paths.dist %>', 
-          keepalive: true
+          keepalive: true,
+          open: true
         }
       }
 
     }, // end connect
-
-    //----------
-
-    open: {
-      webapp: {
-        path: 'http://localhost:' + appConfig.serverPort
-      }
-    },
 
     //----------
 
@@ -528,19 +537,19 @@ module.exports = function(grunt) {
     'clean:dev_scripts',
     
     'template:prod',
-    'minifyHtml:index',
+    'htmlmin:index',
     
     // TODO: define and run tests
 
-    'copy:prod',
+    'copy:prod', 
     'clean:build'
   ]);
 
   //---
 
-  grunt.registerTask('dev', ['dev_build', 'open', 'connect:dev', 'watch']);
+  grunt.registerTask('dev', ['dev_build', 'connect:dev', 'watch']);
 
-  grunt.registerTask('prod', ['prod_build', 'open', 'connect:prod']);
+  grunt.registerTask('prod', ['prod_build', 'connect:prod']);
 
   grunt.registerTask('publish', [
     'prod_build', 
